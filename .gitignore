@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+_refs/
+docs_Assignment3.pdf
+*_run_output.txt
+*.npz
+.DS_Store

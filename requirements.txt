@@ -1,0 +1,3 @@
+numpy>=1.24
+# Optional: only needed for the sparse term-context / PPMI path and full-corpus runs.
+scipy>=1.10
