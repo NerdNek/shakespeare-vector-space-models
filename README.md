@@ -33,7 +33,6 @@ Useful flags:
 | `--seed 42` | Reproducible random target play (default 42) |
 | `--window 2` | Term-context window (default 2, matches starter `__main__`) |
 | `--dense-context` | Use starter-style dense NumPy `|V|×|V|` matrices (~2 GB+) |
-| `--clifford` | Optional geometric-product illustration after PPMI |
 | `--skip-slow-set-sims` | Word rankings with cosine only |
 
 Default full-corpus run builds **sparse** term-context / PPMI matrices, then ranks with the same formulas as the dense helpers. The required functions `create_term_context_matrix` and `create_PPMI_matrix` still return **dense NumPy arrays** when you call them directly (starter contract).
@@ -64,11 +63,3 @@ These scripts compare representations and preprocessing variants. They report ov
 | Dependency | NumPy only | NumPy + SciPy |
 
 Use dense when you need strict starter compatibility on a small vocabulary or a machine with enough RAM. Use sparse for the full Shakespeare run.
-
-## Clifford demo
-
-```bash
-python main.py --clifford
-```
-
-This reduces two PPMI word rows to 2-D, prints `a·b` and `a∧b`, and shows order reversal. It is a **tiny illustration** inspired by `clifford.pdf`, not Functional Geometric Algebra over the vocabulary (that algebra’s size grows as `2^|V|`).

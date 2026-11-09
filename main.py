@@ -4,8 +4,8 @@ This file fills in the Assignment 3 starter stubs.  Function names, arguments,
 and return shapes match the starter so the required interface stays compatible:
 required matrix builders return NumPy arrays.
 
-Optional helpers (sparse matrices, Clifford illustration) live below the
-required functions and are used only when requested from ``__main__``.
+Optional sparse-matrix helpers live below the required functions and are used
+only by the full-corpus runner.
 
 Formulas follow CECS 429/529 Week 10 (log TF, IDF, set Jaccard, cosine) and
 the assignment / textbook treatment of PPMI.
@@ -616,158 +616,6 @@ def create_PPMI_matrix_sparse(term_context_matrix):
 
 
 # ---------------------------------------------------------------------------
-# Optional Clifford / geometric-product illustration (inspired by clifford.pdf)
-# ---------------------------------------------------------------------------
-
-def _hand_worked_geometric_product_example():
-    """Tiny 2-D check independent of the Shakespeare corpus.
-
-    For a = (2, 0) and b = (1, 1):
-      a · b = 2*1 + 0*1 = 2
-      a ∧ b in 2-D is the scalar area a_x b_y - a_y b_x = 2*1 - 0*1 = 2
-      so ab = 2 + 2 e12  (grade-0 + grade-2)
-      ba has the same dot product and the negated wedge: 2 + (-2) e12.
-    """
-    a = np.array([2.0, 0.0])
-    b = np.array([1.0, 1.0])
-    dot_ab = float(np.dot(a, b))
-    wedge_ab = float(a[0] * b[1] - a[1] * b[0])
-    dot_ba = float(np.dot(b, a))
-    wedge_ba = float(b[0] * a[1] - b[1] * a[0])
-    return {
-        "a": a,
-        "b": b,
-        "dot_ab": dot_ab,
-        "wedge_ab": wedge_ab,
-        "dot_ba": dot_ba,
-        "wedge_ba": wedge_ba,
-    }
-
-
-def demonstrate_geometric_product(
-    matrix,
-    vocab,
-    word_a="romeo",
-    word_b="juliet",
-    n_components=2,
-):
-    """Illustrate ab = a·b + a∧b on two reduced word vectors.
-
-    This is a small teaching demo inspired by Pustejovsky's Functional Geometric
-    Algebra paper (clifford.pdf).  It is NOT an implementation of that full
-    framework: a Clifford algebra over the raw |V|-dimensional vectors would
-    have size 2^|V|, which is impossible here.
-
-    Reduction: keep the ``n_components`` dimensions (2 or 3) where
-    |a_i| + |b_i| is largest.  That preserves the coordinates that contribute
-    most to both vectors' magnitudes, but it discards the rest of the space,
-    so numerical values are only meaningful relative to this projection.
-
-    The context / PPMI matrices count left and right neighbors together, so a
-    nonzero wedge after reduction does NOT prove the model encodes word order
-    or character relationships — only that the projected vectors are not
-    parallel in the chosen subspace.
-    """
-    if n_components not in (2, 3):
-        raise ValueError("n_components must be 2 or 3 for this beginner demo")
-
-    word_to_id = {word: i for i, word in enumerate(vocab)}
-    for label, word in (("word_a", word_a), ("word_b", word_b)):
-        if word not in word_to_id:
-            raise KeyError(f"{label} {word!r} is not in the vocabulary")
-
-    full_a = get_row_vector(matrix, word_to_id[word_a])
-    full_b = get_row_vector(matrix, word_to_id[word_b])
-    if np.allclose(full_a, 0) or np.allclose(full_b, 0):
-        raise ValueError(
-            "Refusing geometric product: at least one selected word has a "
-            "zero vector in this matrix (no observed co-occurrence signal)."
-        )
-
-    importance = np.abs(full_a) + np.abs(full_b)
-    # mergesort keeps lower indices first on ties for reproducibility.
-    chosen = np.argsort(-importance, kind="mergesort")[:n_components]
-    a = full_a[chosen]
-    b = full_b[chosen]
-
-    # Grade-0 part: ordinary dot product (symmetric).
-    dot_ab = float(np.dot(a, b))
-    dot_ba = float(np.dot(b, a))
-
-    # Grade-2 part: oriented parallelogram.  In 2-D the bivector has one
-    # coefficient (e12).  In 3-D we report the three coefficients (e12, e13, e23).
-    if n_components == 2:
-        wedge_ab = np.array([a[0] * b[1] - a[1] * b[0]], dtype=np.float64)
-        wedge_ba = np.array([b[0] * a[1] - b[1] * a[0]], dtype=np.float64)
-        wedge_basis = ("e12",)
-    else:
-        wedge_ab = np.array(
-            [
-                a[0] * b[1] - a[1] * b[0],
-                a[0] * b[2] - a[2] * b[0],
-                a[1] * b[2] - a[2] * b[1],
-            ],
-            dtype=np.float64,
-        )
-        wedge_ba = -wedge_ab
-        wedge_basis = ("e12", "e13", "e23")
-
-    hand = _hand_worked_geometric_product_example()
-
-    return {
-        "word_a": word_a,
-        "word_b": word_b,
-        "chosen_dimensions": chosen.tolist(),
-        "reduced_a": a,
-        "reduced_b": b,
-        "dot_ab": dot_ab,
-        "dot_ba": dot_ba,
-        "wedge_ab": wedge_ab,
-        "wedge_ba": wedge_ba,
-        "wedge_basis": wedge_basis,
-        "hand_worked": hand,
-        "note": (
-            "Illustration only: geometric product on a reduced subspace, "
-            "not full Functional Geometric Algebra over the vocabulary."
-        ),
-    }
-
-
-def _print_geometric_product_demo(demo):
-    """Readable console output for the optional Clifford illustration."""
-    print("\n=== Optional Clifford / geometric-product demo ===")
-    print(demo["note"])
-    hand = demo["hand_worked"]
-    print(
-        "Hand-worked 2-D check (not corpus data): "
-        f"a={hand['a']}, b={hand['b']}; "
-        f"a·b={hand['dot_ab']}, a∧b={hand['wedge_ab']}; "
-        f"b·a={hand['dot_ba']}, b∧a={hand['wedge_ba']}"
-    )
-    print(
-        f"Corpus words: {demo['word_a']!r} and {demo['word_b']!r} "
-        f"(PPMI/context rows projected onto dims {demo['chosen_dimensions']})"
-    )
-    print(f"Reduced {demo['word_a']}: {demo['reduced_a']}")
-    print(f"Reduced {demo['word_b']}: {demo['reduced_b']}")
-    print(f"Dot product a·b = {demo['dot_ab']:.6f} (b·a = {demo['dot_ba']:.6f})")
-    wedge_parts = ", ".join(
-        f"{name}={value:.6f}"
-        for name, value in zip(demo["wedge_basis"], demo["wedge_ab"])
-    )
-    print(f"Wedge a∧b components: {wedge_parts}")
-    wedge_rev = ", ".join(
-        f"{name}={value:.6f}"
-        for name, value in zip(demo["wedge_basis"], demo["wedge_ba"])
-    )
-    print(f"Wedge b∧a components: {wedge_rev}")
-    print(
-        "Observation: reversing order leaves the dot product unchanged and "
-        "negates the wedge (antisymmetric)."
-    )
-
-
-# ---------------------------------------------------------------------------
 # Display helpers used by the assignment-style __main__ block
 # ---------------------------------------------------------------------------
 
@@ -839,11 +687,6 @@ def build_arg_parser():
             "Build dense NumPy term-context / PPMI matrices (starter types). "
             "Needs ~2+ GB RAM for the full vocabulary."
         ),
-    )
-    parser.add_argument(
-        "--clifford",
-        action="store_true",
-        help="After PPMI is built, run the optional geometric-product demo.",
     )
     parser.add_argument(
         "--skip-slow-set-sims",
@@ -974,13 +817,3 @@ if __name__ == "__main__":
                 similarity_fn.__name__,
                 label,
             )
-
-    if args.clifford:
-        # Run only after the PPMI matrix exists, as requested.
-        try:
-            demo = demonstrate_geometric_product(
-                ppmi_matrix, vocab, word_a="romeo", word_b="juliet", n_components=2
-            )
-            _print_geometric_product_demo(demo)
-        except (KeyError, ValueError) as exc:
-            print(f"\nClifford demo skipped: {exc}")

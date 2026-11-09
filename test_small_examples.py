@@ -19,10 +19,8 @@ from main import (
     create_term_context_matrix_sparse,
     create_term_document_matrix,
     create_tf_idf_matrix,
-    demonstrate_geometric_product,
     rank_plays,
     rank_words,
-    _hand_worked_geometric_product_example,
 )
 
 
@@ -141,45 +139,9 @@ def test_similarities_and_ranking():
     print("PASS similarities + ranking")
 
 
-def test_clifford_hand_and_demo():
-    hand = _hand_worked_geometric_product_example()
-    assert_close(hand["dot_ab"], 2.0, "hand dot")
-    assert_close(hand["wedge_ab"], 2.0, "hand wedge")
-    assert_close(hand["dot_ba"], hand["dot_ab"], "dot symmetry")
-    assert_close(hand["wedge_ba"], -hand["wedge_ab"], "wedge antisymmetry")
-
-    # Two non-parallel rows in a tiny PPMI-like matrix.
-    matrix = np.array(
-        [
-            [3.0, 1.0, 0.0, 0.5],
-            [1.0, 2.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0, 0.0],
-        ]
-    )
-    vocab = ["romeo", "juliet", "ghost"]
-    demo = demonstrate_geometric_product(
-        matrix, vocab, word_a="romeo", word_b="juliet", n_components=2
-    )
-    assert_close(demo["dot_ab"], demo["dot_ba"], "demo dot symmetry")
-    if not np.allclose(demo["wedge_ba"], -demo["wedge_ab"]):
-        raise AssertionError("demo wedge should negate under reversal")
-
-    try:
-        demonstrate_geometric_product(matrix, vocab, word_a="ghost", word_b="romeo")
-        raise AssertionError("zero vector should raise")
-    except ValueError:
-        pass
-    try:
-        demonstrate_geometric_product(matrix, vocab, word_a="missing", word_b="romeo")
-        raise AssertionError("missing word should raise")
-    except KeyError:
-        pass
-    print("PASS Clifford hand-worked example + demo guards")
-
 
 if __name__ == "__main__":
     test_term_document_and_tfidf()
     test_term_context_and_ppmi()
     test_similarities_and_ranking()
-    test_clifford_hand_and_demo()
     print("\nAll small examples passed.")
